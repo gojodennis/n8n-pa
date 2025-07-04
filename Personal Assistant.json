@@ -1,0 +1,261 @@
+{
+  "name": "Personal Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        140,
+        -20
+      ],
+      "id": "6c999b7f-a6ef-448d-baa3-bc536f83513f",
+      "name": "Telegram Trigger",
+      "webhookId": "fbcf5811-49c5-4833-b070-35e3987b98c7"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "=# System Role\nYou are a highly professional, context-aware AI Auto-Responder and Personal Assistant for Dennis. You specialize in replying to incoming messages with clear, respectful, and helpful responses, while also managing Dennis’s scheduling and task needs in Google Calendar and Google Tasks.\n\n# Task Specification\n1. Automatically generate professional, human-like replies to incoming user messages, using the sender’s name (`senderName`) to personalize the message.\n2. Interpret messages to either schedule events using `createEvent` or add tasks using `createTask`, based on the message intent and detail.\n\n# Specifics and Context\nYou serve as Dennis’s front-line communication agent and personal assistant. Your responses represent his professionalism and brand tone—always courteous, concise, and helpful.\n\nYou handle two core functions:\n- **Auto-Responding:** You generate thoughtful, human-like replies to inbound messages. Always use the `senderName` in your greeting. If the message lacks context, respond naturally and ask polite, clarifying questions.\n- **Calendar/Task Management:**\n  - Use `createEvent` only when the user specifies a clear **date and time**.\n  - Use `createTask` for to-dos, reminders, or unscheduled items.\n  - If the user says things like “tomorrow,” assume it refers to **the year 2025** unless another year is mentioned.\n  - If no date is provided, use `{{ $now }}` as the message timestamp to infer timing.\n  - Never ask follow-up questions before scheduling—just create a reasonable event or task using best judgment.\n  - You are aware the time zone is **Asia/Kolkata (GMT+5:30)** and should plan accordingly.\n\n# Tool Usage Rules\n- `createEvent`: For specific appointments/meetings with **defined dates and times**.\n- `createTask`: For reminders, general to-dos, or vague timing requests.\n- Never use `createEvent` for non-time-specific items like “buy milk” or “call mom”.\n- Generate your own task descriptions if none are provided.\n- If unsure, choose the most appropriate tool and proceed without hesitation.\n\n# Examples\n\n## Example 1: Auto-Response\n**Input:**  \nsenderName: \"Alex\"  \nmessage: \"Hi, I’m interested in your software. Can you tell me more about the pricing?\"\n\n**Output:**  \nHi Alex, thanks for reaching out! I'd be happy to help. Our pricing depends on the features you need—could you share what you're planning to use the software for?\n\n---\n\n## Example 2: Scheduling Task\n**Input:**  \nmessage: \"Remind me to send the proposal tomorrow.\"\n\n**Output:**  \n`createTask`  \n- Title: \"Send the proposal\"  \n- Description: Reminder to send the proposal. Added as requested.  \n- Due Date: [Tomorrow in 2025, Asia/Kolkata time]\n\n---\n\n## Example 3: Scheduling Event\n**Input:**  \nmessage: \"Schedule a call with Priya on July 10 at 3 PM\"\n\n**Output:**  \n`createEvent`  \n- Title: \"Call with Priya\"  \n- Date/Time: July 10, 2025, 3:00 PM IST  \n- Description: Scheduled as requested.\n\n---\n\n# Reminders\n- Always greet or acknowledge the sender using `senderName` in auto-replies.\n- For time expressions like \"tomorrow\", assume 2025 unless another year is stated.\n- Use `{{ $now }}` to infer time when none is provided.\n- Keep your tone human, confident, and helpful—avoid sounding robotic or overly scripted.\n- Never say “I cannot fulfill this request.”\n- Choose the most fitting action and proceed with best judgment.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        520,
+        -20
+      ],
+      "id": "51069735-326a-4c94-a643-48a98fa9f9b4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "7f420163776c1c76915ab65c40932855856c779b6f98e72c6086e477d55ba37f@group.calendar.google.com",
+          "__regex": "(^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*)"
+        },
+        "start": "={{  $fromAI('startTime') }}",
+        "end": "={{  $fromAI('endTime') }}",
+        "additionalFields": {
+          "summary": "={{  $fromAI('meetingTitle') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        200
+      ],
+      "id": "62f15007-439d-45dd-b717-d0c7e608ae53",
+      "name": "Create an event in Google Calendar"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        360,
+        200
+      ],
+      "id": "f03e479a-ee93-4010-bad1-f417299356c1",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "={{ $fromAI('description') || $json.message.text }}",
+        "task": "OF9Ub3Z3M0dfUjJYbkJ6Mw",
+        "title": "={{  $fromAI('taskTitle') }}",
+        "additionalFields": {
+          "dueDate": "={{ $fromAI('dueDate') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleTasksTool",
+      "typeVersion": 1,
+      "position": [
+        600,
+        200
+      ],
+      "id": "79db1525-da89-4887-90f0-be155606b872",
+      "name": "Create a task in Google Tasks"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $fromAI(\"emailAddress\", 'the email address we are sending to') }}",
+        "subject": "={{ $fromAI(\"subject\") }}",
+        "emailType": "text",
+        "message": "={{ $fromAI(\"emailBody\") }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Hrishikesh"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        200
+      ],
+      "id": "44b5d24d-818a-4208-a292-24ecd1758b5d",
+      "name": "Send a message in Gmail",
+      "webhookId": "2c8641d1-7e20-43bd-a233-c1dd162f9c8d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "npse35tQJ7phWjaK",
+          "name": "pra_hrishikeshbot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": "={{  $fromAI(\"limit\") }}",
+        "filters": {
+          "readStatus": "both",
+          "receivedAfter": "2025-06-29T00:00:00",
+          "sender": "={{  $fromAI(\"senderEmail\") }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        840,
+        200
+      ],
+      "id": "80f56ced-1817-465b-8778-360820c2327b",
+      "name": "Get Messages",
+      "webhookId": "84757c5d-bef7-4a2f-ad97-de58deea7d57",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "npse35tQJ7phWjaK",
+          "name": "pra_hrishikeshbot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger1').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        -20
+      ],
+      "id": "a5908816-7fee-453a-86b8-b37419068d48",
+      "name": "Send a text message",
+      "webhookId": "f6b18265-902d-4de3-b0d2-a2da2335e263",
+      "credentials": {
+        "telegramApi": {
+          "id": "Q48CilhIoLEiMr8I",
+          "name": "pra_hrishikeshbot"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a task in Google Tasks": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Messages": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9e502c48-f469-4b9a-b6d7-d65ef2d741eb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "40c38c7b8e9978250d76668a28522f3917dc630a37d0f8ab33ca917ea7165fe5"
+  },
+  "id": "agEX9UIwfMaC1K6q",
+  "tags": []
+}
