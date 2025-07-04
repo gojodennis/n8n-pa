@@ -71,7 +71,7 @@ Keep `.env` and `tokens/` outside of version control.
 
 ## 📁 Structure
 
-- `/workflow.json` – Import into n8n
+- `/Personal Assistant.json` – Import into n8n
 - `/src/` – Service modules (Gmail, Calendar, etc.)
 - `/docs/` – API scopes, OAuth setup
 
