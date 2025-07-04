@@ -53,15 +53,6 @@ Via Telegram, you can:
 
 ---
 
-## 📦 Dependencies
-
-- `@google/generative-ai`
-- `googleapis`
-- `node-telegram-bot-api`
-- `axios`
-
----
-
 ## 🔒 Auth
 
 All Google services use OAuth2. Tokens are refreshed automatically.  
